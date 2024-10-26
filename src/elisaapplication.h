@@ -17,7 +17,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
-
+#include <models/renderermodel.h>
 #include <memory>
 
 class QIcon;
@@ -43,66 +43,76 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
     QML_SINGLETON
 
     Q_PROPERTY(ElisaUtils::PlayListEntryType embeddedView
-               READ embeddedView
-               NOTIFY embeddedViewChanged)
+                   READ embeddedView
+                       NOTIFY embeddedViewChanged)
 
     Q_PROPERTY(MusicListenersManager *musicManager
-               READ musicManager
-               NOTIFY musicManagerChanged)
+                   READ musicManager
+                       NOTIFY musicManagerChanged)
 
     Q_PROPERTY(MediaPlayList *mediaPlayList
-               READ mediaPlayList
-               NOTIFY mediaPlayListChanged)
+                   READ mediaPlayList
+                       NOTIFY mediaPlayListChanged)
 
 
     Q_PROPERTY(MediaPlayListProxyModel *mediaPlayListProxyModel
-               READ mediaPlayListProxyModel
-               NOTIFY mediaPlayListProxyModelChanged)
+                   READ mediaPlayListProxyModel
+                       NOTIFY mediaPlayListProxyModelChanged)
 
 
     Q_PROPERTY(AudioWrapper *audioPlayer
-               READ audioPlayer
-               NOTIFY audioPlayerChanged)
+                   READ audioPlayer
+                       NOTIFY audioPlayerChanged)
 
     Q_PROPERTY(ManageAudioPlayer *audioControl
-               READ audioControl
-               NOTIFY audioControlChanged)
+                   READ audioControl
+                       NOTIFY audioControlChanged)
 
     Q_PROPERTY(ManageMediaPlayerControl *playerControl
-               READ playerControl
-               NOTIFY playerControlChanged)
+                   READ playerControl
+                       NOTIFY playerControlChanged)
 
     Q_PROPERTY(ManageHeaderBar *manageHeaderBar
-               READ manageHeaderBar
-               NOTIFY manageHeaderBarChanged)
+                   READ manageHeaderBar
+                       NOTIFY manageHeaderBarChanged)
 
     Q_PROPERTY(bool showNowPlayingBackground
-               READ showNowPlayingBackground
-               NOTIFY showNowPlayingBackgroundChanged)
+                   READ showNowPlayingBackground
+                       NOTIFY showNowPlayingBackgroundChanged)
 
     Q_PROPERTY(bool showProgressOnTaskBar
-               READ showProgressOnTaskBar
-               NOTIFY showProgressOnTaskBarChanged)
+                   READ showProgressOnTaskBar
+                       NOTIFY showProgressOnTaskBarChanged)
 
     Q_PROPERTY(bool showSystemTrayIcon
-               READ showSystemTrayIcon
-               NOTIFY showSystemTrayIconChanged)
+                   READ showSystemTrayIcon
+                       NOTIFY showSystemTrayIconChanged)
 
     Q_PROPERTY(bool useFavoriteStyleRatings
-               READ useFavoriteStyleRatings
-               NOTIFY useFavoriteStyleRatingsChanged)
+                   READ useFavoriteStyleRatings
+                       NOTIFY useFavoriteStyleRatingsChanged)
+
+    Q_PROPERTY(bool renderersSupported
+                   READ renderersSupported
+                       NOTIFY audioPlayerChanged)
 
     Q_PROPERTY(QAbstractItemModel* colorSchemesModel
-               READ colorSchemesModel
-               CONSTANT)
+                   READ colorSchemesModel
+                       CONSTANT)
+
+    Q_PROPERTY(RendererModel* renderersModel
+                   READ renderersModel
+                       NOTIFY renderersChanged
+
+    )
 
     Q_PROPERTY(int initialViewIndex
-               READ initialViewIndex
-               NOTIFY initialViewIndexChanged)
+                   READ initialViewIndex
+                       NOTIFY initialViewIndexChanged)
 
     Q_PROPERTY(QString initialFilesViewPath
-               READ initialFilesViewPath
-               NOTIFY initialFilesViewPathChanged)
+                   READ initialFilesViewPath
+                       NOTIFY initialFilesViewPathChanged)
 
 public:
 
@@ -142,6 +152,8 @@ public:
     [[nodiscard]] bool showSystemTrayIcon() const;
 
     [[nodiscard]] bool useFavoriteStyleRatings() const;
+
+    [[nodiscard]] bool renderersSupported() const;
 
     [[nodiscard]] ElisaUtils::PlayListEntryType embeddedView() const;
 
@@ -193,6 +205,8 @@ Q_SIGNALS:
 
     void configureElisa();
 
+    void renderersChanged();
+
 public Q_SLOTS:
 
     void reportBug();
@@ -211,6 +225,8 @@ public Q_SLOTS:
     void initialize();
 
     void activateColorScheme(const QString &name);
+    
+    void setRenderer(const QString &name, const QString &type);
 
 public:
 
@@ -247,9 +263,11 @@ private:
     void setupActions(const QString &actionName);
 
     [[nodiscard]] DataTypes::EntryDataList checkFileListAndMakeAbsolute(const DataTypes::EntryDataList &filesList,
-                                                              const QString &workingDirectory) const;
+                                                                        const QString &workingDirectory) const;
 
     QAbstractItemModel *colorSchemesModel();
+
+    RendererModel *renderersModel();
 
     std::unique_ptr<ElisaApplicationPrivate> d;
 

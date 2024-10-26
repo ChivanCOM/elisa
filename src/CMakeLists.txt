@@ -37,9 +37,11 @@ set(elisaLib_SOURCES
     models/viewsmodel.cpp
     models/viewsproxymodel.cpp
     models/lyricsmodel.cpp
+    models/renderermodel.cpp
     viewslistdata.cpp
     viewconfigurationdata.cpp
     localFileConfiguration/elisaconfigurationdialog.cpp
+    rendererDiscoverer.cpp
 )
 
 set(elisaLib_INCLUDEDIRS

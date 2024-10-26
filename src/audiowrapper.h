@@ -16,6 +16,7 @@
 #include <QString>
 
 #include <memory>
+#include <models/renderermodel.h>
 
 class AudioWrapperPrivate;
 
@@ -26,44 +27,51 @@ class ELISALIB_EXPORT AudioWrapper : public QObject
     QML_ELEMENT
 
     Q_PROPERTY(bool muted
-               READ muted
-               WRITE setMuted
-               NOTIFY mutedChanged)
+                   READ muted
+                       WRITE setMuted
+                           NOTIFY mutedChanged)
 
     Q_PROPERTY(qreal volume
-               READ volume
-               WRITE setVolume
-               NOTIFY volumeChanged)
+                   READ volume
+                       WRITE setVolume
+                           NOTIFY volumeChanged)
 
     Q_PROPERTY(QUrl source
-               READ source
-               WRITE setSource
-               NOTIFY sourceChanged)
+                   READ source
+                       WRITE setSource
+                           NOTIFY sourceChanged)
 
     Q_PROPERTY(QMediaPlayer::MediaStatus status
-               READ status
-               NOTIFY statusChanged)
+                   READ status
+                       NOTIFY statusChanged)
 
     Q_PROPERTY(QMediaPlayer::PlaybackState playbackState
-               READ playbackState
-               NOTIFY playbackStateChanged)
+                   READ playbackState
+                       NOTIFY playbackStateChanged)
 
     Q_PROPERTY(QMediaPlayer::Error error
-               READ error
-               NOTIFY errorChanged)
+                   READ error
+                       NOTIFY errorChanged)
 
     Q_PROPERTY(qint64 duration
-               READ duration
-               NOTIFY durationChanged)
+                   READ duration
+                       NOTIFY durationChanged)
 
     Q_PROPERTY(qint64 position
-               READ position
-               WRITE setPosition
-               NOTIFY positionChanged)
+                   READ position
+                       WRITE setPosition
+                           NOTIFY positionChanged)
 
     Q_PROPERTY(bool seekable
-               READ seekable
-               NOTIFY seekableChanged)
+                   READ seekable
+                       NOTIFY seekableChanged)
+
+    Q_PROPERTY(RendererModel *renderersModel
+                   READ renderersModel
+                       NOTIFY renderersChanged)
+
+    Q_PROPERTY(bool renderersSupported
+                   READ renderersSupported)
 
 public:
 
@@ -89,6 +97,8 @@ public:
 
     [[nodiscard]] bool seekable() const;
 
+    [[nodiscard]] bool renderersSupported() const;
+
 Q_SIGNALS:
 
     void mutedChanged(bool muted);
@@ -107,7 +117,7 @@ Q_SIGNALS:
 
     void positionChanged(qint64 position);
 
-    void currentPlayingForRadiosChanged(const QString &title, const QString &artistOrStation);
+    void currentPlayingForRadiosChanged(const QString &title, const QString &nowPlaying);
 
     void seekableChanged(bool seekable);
 
@@ -116,6 +126,8 @@ Q_SIGNALS:
     void paused();
 
     void stopped();
+
+    void renderersChanged();
 
 public Q_SLOTS:
 
@@ -138,6 +150,8 @@ public Q_SLOTS:
     void stop();
 
     void seek(qint64 position);
+
+    void setRenderer(const QString name, const QString type);
 
 private Q_SLOTS:
 
@@ -176,6 +190,13 @@ private:
 
     std::unique_ptr<AudioWrapperPrivate> d;
 
+public:
+    RendererModel *renderersModel();
+
+    void startRendererDiscovery();
+
+    void renderersChanges();
+    
 };
 
 #endif // AUDIOWRAPPER_H

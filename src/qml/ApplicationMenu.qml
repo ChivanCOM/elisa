@@ -31,6 +31,36 @@ Menu {
 
     MenuSeparator {}
 
+     Menu {
+        title: i18nc("@action:inmenu this has child menu items", "Render to")
+        enabled: ElisaApplication.renderersSupported
+        MenuItem {
+                text: "None"
+                checkable: true
+                checked: true
+                autoExclusive: true
+                onTriggered: {
+                     ElisaApplication.setRenderer("Local", "None");
+                    applicationMenu.close();
+                }
+            }
+        Repeater {
+            model: ElisaApplication.renderersModel
+            delegate: MenuItem {
+                text: model.name
+                checkable: true
+                visible: model.type !== "None" 
+                autoExclusive: true
+                onTriggered: {
+                    ElisaApplication.setRenderer(model.name, model.type);
+                    applicationMenu.close();
+                }
+            }
+        }
+    }
+
+    MenuSeparator {}
+
     Action {
         text: i18nc("@action:inmenu", "Scan for New Music")
         icon.name: "view-refresh"

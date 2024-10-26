@@ -101,6 +101,11 @@ bool AudioWrapper::seekable() const
     return d->mPlayer.isSeekable();
 }
 
+bool AudioWrapper::renderersSupported() const
+{
+    return false;
+}
+
 QMediaPlayer::PlaybackState AudioWrapper::playbackState() const
 {
     return d->mCurrentPlaybackState;
@@ -316,5 +321,25 @@ void AudioWrapper::queueStatusChanged()
     }
 }
 
+void AudioWrapper::setRenderer(const QString name, const QString type)
+{
+
+}
+
+void AudioWrapper::startRendererDiscovery()
+{
+}
+
+void AudioWrapper::renderersChanges()
+{
+   
+}
+
+RendererModel *AudioWrapper::renderersModel()
+{
+    RendererModel *renderersModel = new RendererModel();
+   
+    return renderersModel;
+}
 
 #include "moc_audiowrapper.cpp"

@@ -126,9 +126,24 @@ QAbstractItemModel *ElisaApplication::colorSchemesModel()
     return d->mSchemes->model();
 }
 
+RendererModel *ElisaApplication::renderersModel(){
+   
+    if (!d->mAudioWrapper)
+    {
+      return nullptr;
+    }
+    
+    return d->mAudioWrapper->renderersModel();
+
+}
+
 void ElisaApplication::activateColorScheme(const QString &name)
 {
     d->mSchemes->activateScheme(d->mSchemes->indexForScheme(name));
+}
+
+void ElisaApplication::setRenderer(const QString &name, const QString &type) {
+    d->mAudioWrapper->setRenderer(name, type);
 }
 
 void ElisaApplication::setupActions(const QString &actionName)
@@ -471,6 +486,9 @@ void ElisaApplication::initializePlayer()
     d->mManageHeaderBar->setIsValidRole(MediaPlayList::IsValidRole);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::currentTrackChanged, d->mManageHeaderBar.get(), &ManageHeaderBar::setCurrentTrack);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::currentTrackDataChanged, d->mManageHeaderBar.get(), &ManageHeaderBar::updateCurrentTrackData);
+    QObject::connect(d->mAudioWrapper.get(), &AudioWrapper::renderersChanged,this,  &ElisaApplication::renderersChanged );
+    d->mAudioWrapper->startRendererDiscovery();
+    
 }
 
 QAction * ElisaApplication::action(const QString& name)
@@ -597,6 +615,14 @@ bool ElisaApplication::useFavoriteStyleRatings() const
     auto currentConfiguration = Elisa::ElisaConfiguration::self();
 
     return currentConfiguration->useFavoriteStyleRatings();
+}
+
+bool ElisaApplication::renderersSupported() const
+{
+    if (!d || !d->mAudioWrapper){
+        return false;
+    }
+    return d->mAudioWrapper->renderersSupported();
 }
 
 ElisaUtils::PlayListEntryType ElisaApplication::embeddedView() const

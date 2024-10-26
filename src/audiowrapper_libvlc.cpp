@@ -28,6 +28,7 @@ typedef SSIZE_T ssize_t;
 #include <vlc/libvlc_version.h>
 
 #include "config-upnp-qt.h"
+#include "rendererDiscoverer.h"
 
 class AudioWrapperPrivate
 {
@@ -45,6 +46,8 @@ public:
     libvlc_event_manager_t *mPlayerEventManager = nullptr;
 
     libvlc_media_t *mMedia = nullptr;
+
+    std::unique_ptr<RendererDiscoverer> rendererDiscoverer;
 
     qint64 mMediaDuration = 0;
 
@@ -99,6 +102,8 @@ AudioWrapper::AudioWrapper(QObject *parent) : QObject(parent), d(std::make_uniqu
 {
     d->mParent = this;
     d->mInstance = libvlc_new(0, nullptr);
+    d->rendererDiscoverer  = std::make_unique<RendererDiscoverer>(d->mInstance, d->mParent);
+
     libvlc_set_user_agent(d->mInstance, QGuiApplication::applicationDisplayName().toUtf8().constData(), "Elisa Music Player");
     libvlc_set_app_id(d->mInstance, "org.kde.elisa", ELISA_VERSION_STRING, "elisa");
 
@@ -200,6 +205,12 @@ bool AudioWrapper::seekable() const
     return d->mIsSeekable;
 }
 
+bool AudioWrapper::renderersSupported() const
+{
+    return true;
+}
+
+
 QMediaPlayer::PlaybackState AudioWrapper::playbackState() const
 {
     return d->mPreviousPlayerState;
@@ -249,9 +260,9 @@ void AudioWrapper::setSource(const QUrl &source)
 
     if (!d->mMedia) {
         qCDebug(orgKdeElisaPlayerVlc) << "AudioWrapper::setSource"
-                 << "failed creating media"
-                 << libvlc_errmsg()
-                 << QDir::toNativeSeparators(source.toLocalFile()).toUtf8().constData();
+                                      << "failed creating media"
+                                      << libvlc_errmsg()
+                                      << QDir::toNativeSeparators(source.toLocalFile()).toUtf8().constData();
 
 #if LIBVLC_VERSION_MAJOR >= 4
         d->mMedia = libvlc_media_new_path(QDir::toNativeSeparators(source.toLocalFile()).toLatin1().constData());
@@ -260,9 +271,9 @@ void AudioWrapper::setSource(const QUrl &source)
 #endif
         if (!d->mMedia) {
             qCDebug(orgKdeElisaPlayerVlc) << "AudioWrapper::setSource"
-                     << "failed creating media"
-                     << libvlc_errmsg()
-                     << QDir::toNativeSeparators(source.toLocalFile()).toLatin1().constData();
+                                          << "failed creating media"
+                                          << libvlc_errmsg()
+                                          << QDir::toNativeSeparators(source.toLocalFile()).toLatin1().constData();
             return;
         }
     }
@@ -362,6 +373,17 @@ void AudioWrapper::seek(qint64 position)
     setPosition(position);
 }
 
+void AudioWrapper::setRenderer(const QString name, const QString type)
+{
+    std::map<std::pair<std::string, std::string>, libvlc_renderer_item_t *> renderers = d->rendererDiscoverer->getRenderers();
+
+    auto it = renderers.find({name.toStdString(), type.toStdString()});
+    if (it != renderers.end())
+    {
+        libvlc_media_player_set_renderer(d->mPlayer, it->second);
+    }
+}
+
 void AudioWrapper::mediaStatusChanged()
 {
 }
@@ -432,7 +454,37 @@ void AudioWrapper::playerMutedSignalChanges(bool isMuted)
 
 void AudioWrapper::playerSeekableSignalChanges(bool isSeekable)
 {
-    QMetaObject::invokeMethod(this, [this, isSeekable]() {Q_EMIT seekableChanged(isSeekable);}, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [this, isSeekable]() {Q_EMIT seekableChanged(isSeekable); }, Qt::QueuedConnection);
+}
+
+void AudioWrapper::startRendererDiscovery()
+{
+    d->rendererDiscoverer->start();
+}
+
+void AudioWrapper::renderersChanges()
+{
+    QMetaObject::invokeMethod(this, [this]()
+                              { Q_EMIT renderersChanged(); }, Qt::QueuedConnection);
+}
+
+RendererModel *AudioWrapper::renderersModel()
+{
+    if (!d->rendererDiscoverer)
+    {
+        return nullptr;
+    }
+    RendererModel *renderersModel = new RendererModel();
+    if (d != nullptr)
+    {
+        std::map<std::pair<std::string, std::string>, libvlc_renderer_item_t *> renderers = d->rendererDiscoverer->getRenderers();
+
+        for (const auto &pair : renderers)
+        {
+            renderersModel->addItem(QString::fromStdString(pair.first.first),QString::fromStdString(pair.first.second)); // Convert std::string to QString
+        }
+    }
+    return renderersModel;
 }
 
 void AudioWrapperPrivate::vlcEventCallback(const struct libvlc_event_t *p_event)
@@ -596,24 +648,10 @@ void AudioWrapperPrivate::signalPositionChange(float newPosition)
     }
 
     if (this->mMedia) {
-        QString metaNowPlaying = QLatin1String(libvlc_media_get_meta(this->mMedia, libvlc_meta_NowPlaying));    // Usually set in mp3 and aac streams. Contains both song artist AND song title in this single string.
-        QString metaTitle = QLatin1String(libvlc_media_get_meta(this->mMedia, libvlc_meta_Title));              // Can be the song title (sometimes for ogg vorbis streams) or the radio station title (usually for mp3 and aac streams)
-        QString metaArtist = QLatin1String(libvlc_media_get_meta(this->mMedia, libvlc_meta_Artist));            // Can be the artist of the song (seldom, for ogg vorbis stream)
+        QString title = QLatin1String(libvlc_media_get_meta(this->mMedia, libvlc_meta_Title));
+        QString nowPlaying = QLatin1String(libvlc_media_get_meta(this->mMedia, libvlc_meta_NowPlaying));
 
-        // Common case for mp3 and aac streams:
-        QString *title = &metaNowPlaying;                                   // Usually song artist AND song title
-        QString *artistOrStation = &metaTitle;                              // Usually radio station title
-
-        // Special cases, found for some ogg stream stations:
-        if (!metaArtist.isEmpty()) {                                        // Hint: artist is empty for mp3 and aac streams. Only found in ogg stream.
-            artistOrStation = &metaArtist;                                  // Song artist
-            title = !metaTitle.isEmpty()? &metaTitle : &metaNowPlaying;     // Pick the title if given; else pick nowPlayingMeta (might be empty, too...)
-        } else if (metaNowPlaying.isEmpty()) {
-            title = &metaTitle;                                             // Title metadata, probably song artist AND song title
-            artistOrStation = &metaArtist;                                  // Empty string
-        }
-
-        Q_EMIT mParent->currentPlayingForRadiosChanged(*title, *artistOrStation);
+        Q_EMIT mParent->currentPlayingForRadiosChanged(title, nowPlaying);
     }
 }
 
