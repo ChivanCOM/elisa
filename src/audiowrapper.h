@@ -117,7 +117,7 @@ Q_SIGNALS:
 
     void positionChanged(qint64 position);
 
-    void currentPlayingForRadiosChanged(const QString &title, const QString &nowPlaying);
+    void currentPlayingForRadiosChanged(const QString &title, const QString &artistOrStation);
 
     void seekableChanged(bool seekable);
 
