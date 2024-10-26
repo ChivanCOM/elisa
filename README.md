@@ -16,6 +16,8 @@ SPDX-License-Identifier: LGPL-3.0-or-later
 Elisa is a simple music player aiming to provide a nice experience for its users.
 User-facing information about the app can be found at https://apps.kde.org/elisa/.
 
+**This Chivan has added support for chromecast renderers in a crude way.**
+
 ## Contributions
 
 Contributions are very much welcome! The process of building Elisa from source using KDE's `kdesrc-build` tool is easy and recommended. See
